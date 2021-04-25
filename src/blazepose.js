@@ -7,7 +7,7 @@ const modelOptions = {
   detectorPath: 'file://model/blazepose-detect.json',
   modelFullPath: 'file://model/blazepose-full.json',
   modelUpperPath: 'file://model/blazepose-upper.json',
-  minScore: 0.3,
+  minScore: 0.1,
 };
 const depth = 5; // each points has x,y,z,visibility,presence
 
@@ -33,17 +33,19 @@ async function runDetect(input) {
   const detectT = await models[0].predict(resize);
   resize.dispose();
 
-  const classificator = detectT.find((t) => t.size === 896).argMax(1).dataSync()[0]; // order of output tensors may change between models
-  const regressors = detectT.find((t) => t.size === 10752).arraySync()[0]; // order of output tensors may change between models
+  const argMax = detectT.find((t) => t.size === 896).argMax(1); // location of best score
+  const max = argMax.dataSync()[0];
+  const points = detectT.find((t) => t.size === 10752).arraySync()[0]; // array of 896 possible x 12 values per entry which are likely 6 points
+  argMax.dispose();
   detectT.forEach((t) => t.dispose());
 
   const keypoints = [];
-  for (let i = 0; i < regressors[classificator].length; i++) {
+  for (let i = 0; i < points[max].length; i++) {
     keypoints.push({
       id: i / 2,
       position: {
-        x: (Math.trunc(input.shape[2] * regressors[classificator][i] / 128)),
-        y: (Math.trunc(input.shape[1] * regressors[classificator][++i] / 128)),
+        x: (Math.trunc(input.shape[2] * points[max][i] / 128)),
+        y: (Math.trunc(input.shape[1] * points[max][++i] / 128)),
       },
     });
   }
@@ -77,6 +79,7 @@ async function runFull(input) {
       score: Math.min(visibility, presence),
     });
   }
+
   const avgScore = totalScore / allKeypoints.length;
   const keypoints = allKeypoints.filter((a) => a.score > modelOptions.minScore);
   const visibileScore = totalScore / keypoints.length;
@@ -110,17 +113,19 @@ async function runUpper(input) {
       score: Math.min(visibility, presence),
     });
   }
+
   const avgScore = totalScore / allKeypoints.length;
   const keypoints = allKeypoints.filter((a) => a.score > modelOptions.minScore);
   const visibileScore = totalScore / keypoints.length;
   return { name: 'upper', keypoints, visibleParts: keypoints.length, visibileScore, missingParts: allKeypoints.length - keypoints.length, avgScore };
 }
 
-async function predict(input) {
-  const resDetect = await runDetect(input);
-  const resFull = await runFull(input);
-  const resUpper = await runUpper(input);
-  return [resDetect, resFull, resUpper];
+async function predict(input, options) {
+  const results = [];
+  if (options?.detect) results.push(await runDetect(input));
+  if (options?.full) results.push(await runFull(input));
+  if (options?.upper) results.push(await runUpper(input));
+  return results;
 }
 
 exports.predict = predict;

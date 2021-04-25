@@ -21,6 +21,9 @@ async function saveImage(results, img) {
 
   // draw all detected objects
   for (const res of results) {
+    // eslint-disable-next-line no-continue
+    if (!res.keypoings) continue;
+
     let color = 'white';
     if (res.name === 'detect') color = 'lightcoral';
     if (res.name === 'full') color = 'lightblue';
@@ -127,7 +130,7 @@ async function main() {
 
   // run actual prediction
   const t0 = process.hrtime.bigint();
-  const res = await blazepose.predict(img);
+  const res = await blazepose.predict(img, { detect: true, full: true, upper: true });
   tf.dispose(img);
   const t1 = process.hrtime.bigint();
   log.info('Inference time:', Math.round(parseInt((t1 - t0).toString()) / 1000 / 1000), 'ms');
