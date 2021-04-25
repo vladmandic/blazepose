@@ -4,7 +4,7 @@
   "description": "BlazePose: Body Segmentation for TFJS and NodeJS",
   "main": "blazepose.js",
   "scripts": {
-    "start": "node test.js inputs/body.jpg",
+    "start": "node predict.js inputs/model1.jpg",
     "lint": "eslint *.js src/*.js"
   },
   "engines": {

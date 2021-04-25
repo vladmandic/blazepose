@@ -13,29 +13,6 @@ const modelOptions = {
 
 const bodyParts = ['head', 'neck', 'rightShoulder', 'rightElbow', 'rightWrist', 'chest', 'leftShoulder', 'leftElbow', 'leftWrist', 'pelvis', 'rightHip', 'rightKnee', 'rightAnkle', 'leftHip', 'leftKnee', 'leftAnkle'];
 
-// eslint-disable-next-line no-unused-vars
-function padImage(imgTensor) {
-  return tf.tidy(() => {
-    const [height, width] = imgTensor.shape.slice(1);
-    if (height === width) return imgTensor;
-    const axis = height > width ? 2 : 1;
-
-    const createPaddingTensor = (ammount) => {
-      const paddingTensorShape = imgTensor.shape.slice();
-      paddingTensorShape[axis] = ammount;
-      return tf.fill(paddingTensorShape, 0, 'float32');
-    };
-
-    let ammount = 0;
-    const diff = Math.abs(height - width);
-    ammount = Math.round(diff * 0.5);
-    const append = createPaddingTensor(ammount);
-    ammount = diff - ammount; // (append.shape[axis] || 0);
-    const prepend = createPaddingTensor(ammount);
-    return tf.concat([prepend, imgTensor, append], axis);
-  });
-}
-
 // save image with processed results
 async function saveImage(res, img) {
   // create canvas
@@ -87,6 +64,29 @@ async function saveImage(res, img) {
   out.on('error', (err) => log.error('Error creating image:', outImage, err));
   const stream = c.createJPEGStream({ quality: 0.6, progressive: true, chromaSubsampling: true });
   stream.pipe(out);
+}
+
+// eslint-disable-next-line no-unused-vars
+function padImage(imgTensor) {
+  return tf.tidy(() => {
+    const [height, width] = imgTensor.shape.slice(1);
+    if (height === width) return imgTensor;
+    const axis = height > width ? 2 : 1;
+
+    const createPaddingTensor = (ammount) => {
+      const paddingTensorShape = imgTensor.shape.slice();
+      paddingTensorShape[axis] = ammount;
+      return tf.fill(paddingTensorShape, 0, 'float32');
+    };
+
+    let ammount = 0;
+    const diff = Math.abs(height - width);
+    ammount = Math.round(diff * 0.5);
+    const append = createPaddingTensor(ammount);
+    ammount = diff - ammount; // (append.shape[axis] || 0);
+    const prepend = createPaddingTensor(ammount);
+    return tf.concat([prepend, imgTensor, append], axis);
+  });
 }
 
 // load image from file and prepares image tensor that fits the model
