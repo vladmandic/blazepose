@@ -1,16 +1,18 @@
 # BlazePose: Body Segmentation for TFJS and NodeJS
 
+Included models:
+
+- BlazePose Detector
+- BlazePose Full Body Keypoints
+- BlazePose Upper Body Keypoints
+
 Models included in `/model/*` were converted to TFJS Graph model format from the original repository  
 Models descriptors and signature have been additionally parsed for readability
 
 Actual model parsing implementation in `/src` does not follow original  
 and is implemented using native TFJS ops and optimized for JavaScript execution
 
-<br><hr><br>
-
 ## Work in Progress
-
-<br><hr><br>
 
 ## Models
 
@@ -57,8 +59,6 @@ DATA:  outputs: [
   { id: 2, name: 'ld_3d:0', dytpe: 'DT_FLOAT', shape: [ 1, 155 ] },
 ]
 ```
-
-<br><hr><br>
 
 ## Credits & Links
 

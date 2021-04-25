@@ -1,58 +1,127 @@
-// paper: https://ai.googleblog.com/2020/08/on-device-real-time-body-pose-tracking.html
+const tf = require('@tensorflow/tfjs-node');
+const annotations = require('./annotations');
 
-import { log, join } from '../helpers';
-import * as tf from '../../dist/tfjs.esm.js';
-import * as profile from '../profile';
-import * as annotations from './annotations';
+const models = [];
 
-let model;
+const modelOptions = {
+  detectorPath: 'file://model/blazepose-detect.json',
+  modelFullPath: 'file://model/blazepose-full.json',
+  modelUpperPath: 'file://model/blazepose-upper.json',
+  minScore: 0.3,
+};
+const depth = 5; // each points has x,y,z,visibility,presence
 
-export async function load(config) {
-  if (!model) {
-    model = await tf.loadGraphModel(join(config.modelBasePath, config.body.modelPath));
-    model.width = parseInt(model.signature.inputs['input_1:0'].tensorShape.dim[2].size);
-    model.height = parseInt(model.signature.inputs['input_1:0'].tensorShape.dim[1].size);
-    if (!model || !model.modelUrl) log('load model failed:', config.body.modelPath);
-    else if (config.debug) log('load model:', model.modelUrl);
-  } else if (config.debug) log('cached model:', model.modelUrl);
-  return model;
+async function load() {
+  if (models.length === 0) {
+    models.push(await tf.loadGraphModel(modelOptions.detectorPath));
+    models.push(await tf.loadGraphModel(modelOptions.modelFullPath));
+    models.push(await tf.loadGraphModel(modelOptions.modelUpperPath));
+  }
+  return models;
 }
 
-export async function predict(image, config) {
-  if (!model) return null;
-  if (!config.body.enabled) return null;
-  const imgSize = { width: image.shape[2], height: image.shape[1] };
-  const resize = tf.image.resizeBilinear(image, [model.width, model.height], false);
-  const normalize = tf.div(resize, [255.0]);
-  resize.dispose();
-  let points;
-  if (!config.profile) { // run through profiler or just execute
-    const resT = await model.predict(normalize);
-    points = resT.find((t) => (t.size === 195 || t.size === 155)).dataSync(); // order of output tensors may change between models, full has 195 and upper has 155 items
-    resT.forEach((t) => t.dispose());
-  } else {
-    const profileData = await tf.profile(() => model.predict(normalize));
-    points = profileData.result.find((t) => (t.size === 195 || t.size === 155)).dataSync();
-    profileData.result.forEach((t) => t.dispose());
-    profile.run('blazepose', profileData);
-  }
+async function runDetect(input) {
+  /* keypoints are *maybe*
+  - face box
+  - middle point between hips
+  - size of the circle circumscribing the whole person,
+  - angle between the lines connecting the two mid-shoulder and mid-hip points
+  */
+  const normalize = input.div(127.5).sub(1);
+  const resize = tf.image.resizeBilinear(normalize, [128, 128]);
   normalize.dispose();
-  const keypoints: Array<{ id, part, position: { x, y, z }, score, presence }> = [];
-  const labels = points.length === 195 ? annotations.full : annotations.upper; // full model has 39 keypoints, upper has 31 keypoints
-  const depth = 5; // each points has x,y,z,visibility,presence
-  for (let i = 0; i < points.length / depth; i++) {
+  const detectT = await models[0].predict(resize);
+  resize.dispose();
+
+  const classificator = detectT.find((t) => t.size === 896).argMax(1).dataSync()[0]; // order of output tensors may change between models
+  const regressors = detectT.find((t) => t.size === 10752).arraySync()[0]; // order of output tensors may change between models
+  detectT.forEach((t) => t.dispose());
+
+  const keypoints = [];
+  for (let i = 0; i < regressors[classificator].length; i++) {
     keypoints.push({
-      id: i,
-      part: labels[i],
+      id: i / 2,
       position: {
-        x: Math.trunc(imgSize.width * points[depth * i + 0] / 255), // return normalized x value istead of 0..255
-        y: Math.trunc(imgSize.height * points[depth * i + 1] / 255), // return normalized y value istead of 0..255
-        z: Math.trunc(points[depth * i + 2]) + 0, // fix negative zero
+        x: (Math.trunc(input.shape[2] * regressors[classificator][i] / 128)),
+        y: (Math.trunc(input.shape[1] * regressors[classificator][++i] / 128)),
       },
-      score: (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 3])))) / 100, // reverse sigmoid value
-      presence: (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 4])))) / 100, // reverse sigmoid value
     });
   }
-  const score = keypoints.reduce((prev, curr) => (curr.score > prev ? curr.score : prev), 0);
-  return [{ score, keypoints }];
+  return { name: 'detect', keypoints };
 }
+
+async function runFull(input) {
+  const normalize = input.div(127.5).sub(1);
+  const resize = tf.image.resizeBilinear(normalize, [256, 256]);
+  normalize.dispose();
+  const resT = await models[1].predict(resize); // blazepose-full
+  resize.dispose();
+
+  const points = resT.find((t) => t.size === 195).dataSync(); // order of output tensors may change between models, full has 195 and upper has 155 items
+  resT.forEach((t) => t.dispose());
+  let totalScore = 0;
+
+  const allKeypoints = [];
+  for (let i = 0; i < points.length / depth; i++) {
+    const visibility = (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 3])))) / 100; // reverse sigmoid value
+    const presence = (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 4])))) / 100; // reverse sigmoid value
+    totalScore += Math.min(visibility, presence);
+    allKeypoints.push({
+      id: i,
+      part: annotations.full[i],
+      position: {
+        x: Math.trunc(input.shape[2] * points[depth * i + 0] / 256), // return normalized x value istead of 0..255
+        y: Math.trunc(input.shape[1] * points[depth * i + 1] / 256), // return normalized y value istead of 0..255
+        z: Math.trunc(points[depth * i + 2]) + 0, // fix negative zero
+      },
+      score: Math.min(visibility, presence),
+    });
+  }
+  const avgScore = totalScore / allKeypoints.length;
+  const keypoints = allKeypoints.filter((a) => a.score > modelOptions.minScore);
+  const visibileScore = totalScore / keypoints.length;
+  return { name: 'full', keypoints, visibleParts: keypoints.length, visibileScore, missingParts: allKeypoints.length - keypoints.length, avgScore };
+}
+
+async function runUpper(input) {
+  const normalize = input.div(127.5).sub(1);
+  const resize = tf.image.resizeBilinear(normalize, [256, 256]);
+  normalize.dispose();
+  const resT = await models[2].predict(resize); // blazepose-full
+  resize.dispose();
+
+  const points = resT.find((t) => t.size === 155).dataSync(); // order of output tensors may change between models, full has 195 and upper has 155 items
+  resT.forEach((t) => t.dispose());
+  let totalScore = 0;
+
+  const allKeypoints = [];
+  for (let i = 0; i < points.length / depth; i++) {
+    const visibility = (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 3])))) / 100; // reverse sigmoid value
+    const presence = (100 - Math.trunc(100 / (1 + Math.exp(points[depth * i + 4])))) / 100; // reverse sigmoid value
+    totalScore += Math.min(visibility, presence);
+    allKeypoints.push({
+      id: i,
+      part: annotations.upper[i],
+      position: {
+        x: Math.trunc(input.shape[2] * points[depth * i + 0] / 256), // return normalized x value istead of 0..255
+        y: Math.trunc(input.shape[1] * points[depth * i + 1] / 256), // return normalized y value istead of 0..255
+        z: Math.trunc(points[depth * i + 2]) + 0, // fix negative zero
+      },
+      score: Math.min(visibility, presence),
+    });
+  }
+  const avgScore = totalScore / allKeypoints.length;
+  const keypoints = allKeypoints.filter((a) => a.score > modelOptions.minScore);
+  const visibileScore = totalScore / keypoints.length;
+  return { name: 'upper', keypoints, visibleParts: keypoints.length, visibileScore, missingParts: allKeypoints.length - keypoints.length, avgScore };
+}
+
+async function predict(input) {
+  const resDetect = await runDetect(input);
+  const resFull = await runFull(input);
+  const resUpper = await runUpper(input);
+  return [resDetect, resFull, resUpper];
+}
+
+exports.predict = predict;
+exports.load = load;
