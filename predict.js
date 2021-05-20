@@ -22,7 +22,7 @@ async function saveImage(results, img) {
   // draw all detected objects
   for (const res of results) {
     // eslint-disable-next-line no-continue
-    if (!res.keypoings) continue;
+    if (!res.keypoints) continue;
 
     let color = 'white';
     if (res.name === 'detect') color = 'lightcoral';
