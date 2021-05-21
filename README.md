@@ -9,12 +9,12 @@ Included models:
 Models included in `/model/*` were converted to TFJS Graph model format from the original repository  
 Models descriptors and signature have been additionally parsed for readability
 
-Actual model parsing implementation in `/src/blazepose.js` does not follow original  
-and is implemented using native TFJS ops and optimized for JavaScript execution
-
 <br>
 
-## Results
+## Implementation
+
+Actual model parsing implementation in `/src/blazepose.js` does not follow original  
+and is implemented using native TFJS ops and optimized for JavaScript execution
 
 All models return object defined as:
 
