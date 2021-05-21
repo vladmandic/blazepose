@@ -9,10 +9,42 @@ Included models:
 Models included in `/model/*` were converted to TFJS Graph model format from the original repository  
 Models descriptors and signature have been additionally parsed for readability
 
-Actual model parsing implementation in `/src` does not follow original  
+Actual model parsing implementation in `/src/blazepose.js` does not follow original  
 and is implemented using native TFJS ops and optimized for JavaScript execution
 
-## Models
+<br>
+
+## Results
+
+All models return object defined as:
+
+- `keypoints`: array of keypoints where number of keypoints depends on the model used
+  - `id`
+  - `part`: annotated body part
+  - `position`: x, y, z
+  - `score`
+- `visibleParts`: number of visible keypoints
+- `visibileScore`: average score of visible keypoints
+- `missingParts`: number of keypoints that were below threshold or not detected
+- `avgScore`: overall average score
+
+<br>
+
+**Detector model** base implementation, but results are not processed as of yet
+
+**Full body model** returns 39 keypoints
+
+**Upper body model** returns 31 keypoints
+
+For end-to-end demo, see `predict.js` that uses `/src/blazepose.js` for actual model execution and results processing
+
+<br>
+
+## Example
+
+![Example Image](outputs/model2.jpg)
+
+<br>
 
 ### Detector
 
