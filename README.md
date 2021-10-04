@@ -29,7 +29,10 @@ However, detector is much slower and requires a lot of post-processing - thus it
 Instead, this implementation prepares *virtual* detected tensor padded and resized to fit pose analysis model
 
 Implementation is in `src/blazepose.ts` with keypoint definitions and annotations in `src/blazeposecoords.ts`  
-The rest of sources in `src/util` is for simplicity of usage and testing only
+The rest of sources in `src/util` is for simplicity of usage and testing only  
+
+Ideal implementation includes additional results caching and temporal interpolation with smoothing functionality  
+See <https://github.com/vladmandic/human> for details  
 
 ## Result
 
@@ -64,5 +67,6 @@ await detectImage('daz3d-ella.jpg');
 
 ## Todo
 
-Enhance virtual tensor with virtual box around previous body center  
-For details, see disabled code in `calculateBoxes` method
+- Enhance virtual tensor with virtual box around previous body center  
+  For details, see disabled code in `calculateBoxes` method
+- HeatMap processing
