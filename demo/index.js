@@ -2,15 +2,13 @@ import * as blazepose from '../dist/blazepose.js';
 
 const config = {
   modelBasePath: 'model',
-  cacheSensitivity: 0.75,
-  skipFrame: true,
+  skipFrame: false,
   body: {
     enabled: true,
     modelPath: 'blazepose-lite.json',
     detector: { modelPath: '' },
     maxDetected: 1,
     minConfidence: 0.55,
-    skipFrames: 1,
   },
 };
 
@@ -61,7 +59,7 @@ async function detectionLoop() {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function detectImage(url) {
   const image = document.createElement('img');
-  const loaded = new Promise((resolve) => image.onload = () => resolve(true));
+  const loaded = new Promise((resolve) => { image.onload = () => resolve(true); });
   image.src = url;
   await loaded;
   const tensor = blazepose.util.input2tensor(image);

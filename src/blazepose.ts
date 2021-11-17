@@ -94,7 +94,10 @@ async function prepareImage(input: Tensor): Promise<Tensor> {
   ];
   t.pad = tf.pad(input as tf.Tensor4D, padding);
   t.resize = tf.image.resizeBilinear(t.pad as tf.Tensor4D, [inputSize[1][0], inputSize[1][1]]);
-  const final = tf.div(t.resize, 255);
+  const crop = [0 - padding[1][0] / input.shape[1], 0 - padding[2][0] / input.shape[2], 1 + padding[1][1] / input.shape[1], 1 + padding[2][1] / input.shape[2]];
+  t.crop = tf.image.cropAndResize(input as tf.Tensor4D, [crop], [0], [inputSize[1][0], inputSize[1][1]]);
+  log('INPUT:', { input: input.shape, resized: t.resize.shape, cropped: t.crop.shape, padding, crop });
+  const final = tf.div(t.crop, 255);
   Object.keys(t).forEach((tensor) => tf.dispose(t[tensor]));
   return final;
 }
