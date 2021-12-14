@@ -21,15 +21,15 @@
   },
   "homepage": "https://github.com/vladmandic/blazepose#readme",
   "dependencies": {
-    "@tensorflow/tfjs": "^3.11.0",
-    "@tensorflow/tfjs-node": "^3.11.0",
-    "@vladmandic/build": "^0.6.4",
+    "@tensorflow/tfjs": "^3.12.0",
+    "@tensorflow/tfjs-node": "^3.12.0",
+    "@vladmandic/build": "^0.6.6",
     "@vladmandic/pilogger": "^0.3.5",
     "canvas": "^2.8.0",
-    "eslint-plugin-promise": "^5.1.1"
+    "eslint-plugin-promise": "^5.2.0"
   },
   "devDependencies": {
-    "eslint": "^8.2.0",
+    "eslint": "^8.4.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0"
