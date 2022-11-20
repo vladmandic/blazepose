@@ -2,23 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Human</title>
+    <title>BlazePose Port</title>
     <meta name="viewport" content="width=device-width" id="viewport">
-    <meta name="keywords" content="Human">
-    <meta name="application-name" content="Human">
-    <meta name="description" content="Human: 3D Face Detection, Body Pose, Hand & Finger Tracking, Iris Tracking, Age & Gender Prediction, Emotion Prediction & Gesture Recognition; Author: Vladimir Mandic <https://github.com/vladmandic>">
-    <meta name="msapplication-tooltip" content="Human: 3D Face Detection, Body Pose, Hand & Finger Tracking, Iris Tracking, Age & Gender Prediction, Emotion Prediction & Gesture Recognition; Author: Vladimir Mandic <https://github.com/vladmandic>">
-    <script src="./index.js" type="module"></script>
+    <meta name="keywords" content="BlazePose Port">
+    <meta name="application-name" content="BlazePose Port">
+    <meta name="description" content="BlazePose Port; Author: Vladimir Mandic <https://github.com/vladmandic>">
+    <meta name="msapplication-tooltip" content="BlazePose Port; Author: Vladimir Mandic <https://github.com/vladmandic>">
+    <script src="../dist/index.js" type="module"></script>
     <style>
       html { font-family: 'Segoe UI'; font-size: 16px; font-variant: small-caps; }
-      body { margin: 0; background: black; color: white; overflow-x: hidden; width: 100vw; height: 100vh; text-align: center; }
-      body::-webkit-scrollbar { display: none; }
-      canvas { border: 2px grey solid; margin: 0 auto; }
+      body { margin: 0; background: #333; color: white; overflow: hidden; width: 100vw; height: 100vh; }
     </style>
   </head>
   <body>
-    <canvas id="canvas"></canvas><br>
+    <canvas id="canvas" style="width: -webkit-fill-available"></canvas>
+    <image id="image" style="display: none"></image>
     <video id="video" playsinline style="display: none"></video>
-    <div id="fps" style="position: absolute; top: 20px; right: 20px; background-color: grey; padding: 8px"></div>
+    <div id="fps" style="position: absolute; top: 20px; right: 20px; background-color: #555; padding: 8px"></div>
   </body>
 </html>

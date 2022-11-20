@@ -18,7 +18,7 @@ export function log(...msg): void {
   const dt = new Date();
   const ts = `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}:${dt.getSeconds().toString().padStart(2, '0')}.${dt.getMilliseconds().toString().padStart(3, '0')}`;
   // eslint-disable-next-line no-console
-  if (msg) console.log(ts, 'Human:', ...msg);
+  if (msg) console.log(ts, ...msg);
 }
 
 // helper function: gets elapsed time on both browser and nodejs
@@ -26,38 +26,6 @@ export const now = () => {
   if (typeof performance !== 'undefined') return performance.now();
   return parseInt((Number(process.hrtime.bigint()) / 1000 / 1000).toString());
 };
-
-// helper function: checks current config validity
-export function validate(defaults, config, parent = 'config', msgs: Array<{ reason: string, where: string, expected?: string }> = []) {
-  for (const key of Object.keys(config)) {
-    if (typeof config[key] === 'object') {
-      validate(defaults[key], config[key], key, msgs);
-    } else {
-      const defined = defaults && (typeof defaults[key] !== 'undefined');
-      if (!defined) msgs.push({ reason: 'unknown property', where: `${parent}.${key} = ${config[key]}` });
-      const same = defaults && typeof defaults[key] === typeof config[key];
-      if (defined && !same) msgs.push({ reason: 'property type mismatch', where: `${parent}.${key} = ${config[key]}`, expected: typeof defaults[key] });
-    }
-    // ok = ok && defined && same;
-  }
-  if (config.debug && parent === 'config' && msgs.length > 0) log('invalid configuration', msgs);
-  return msgs;
-}
-
-// helper function: perform deep merge of multiple objects so it allows full inheriance with overrides
-export function mergeDeep(...objects) {
-  const isObject = (obj) => obj && typeof obj === 'object';
-  return objects.reduce((prev, obj) => {
-    Object.keys(obj || {}).forEach((key) => {
-      const pVal = prev[key];
-      const oVal = obj[key];
-      if (Array.isArray(pVal) && Array.isArray(oVal)) prev[key] = pVal.concat(...oVal);
-      else if (isObject(pVal) && isObject(oVal)) prev[key] = mergeDeep(pVal, oVal);
-      else prev[key] = oVal;
-    });
-    return prev;
-  }, {});
-}
 
 // helper function: return min and max from input array
 export const minmax = (data: Array<number>) => data.reduce((acc: Array<number>, val) => {
@@ -68,15 +36,16 @@ export const minmax = (data: Array<number>) => data.reduce((acc: Array<number>, 
 
 // helper function: async wait
 export async function wait(time) {
-  const waiting = new Promise((resolve) => setTimeout(() => resolve(true), time));
+  const waiting = new Promise((resolve) => { setTimeout(() => resolve(true), time); });
   await waiting;
 }
 
 export function input2tensor(input) {
-  const inputTensor = tf.browser.fromPixels(input);
-  const expandedTensor = tf.expandDims(inputTensor, 0);
-  tf.dispose(inputTensor);
-  return expandedTensor;
+  const inputT = tf.browser.fromPixels(input);
+  const expandT = tf.expandDims(inputT, 0);
+  const normalizeT = tf.div(expandT, 255);
+  tf.dispose([inputT, expandT]);
+  return normalizeT;
 }
 
 export function dispose(tensor) {
